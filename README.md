@@ -33,3 +33,27 @@ go build -o log_parser.exe .
 - Лог-файлы должны иметь имя `YYMMDDHH.log` (например, `26050121.log`). Файлы с другими именами пропускаются.
 - Каждая строка — JSON-объект с полями события технологического журнала 1С.
 - Первая строка файла может содержать UTF-8 BOM — автоматически удаляется.
+
+## Пример настройки технологического журнала
+
+```xml
+<?xml version="1.0"?>
+<config xmlns="http://v8.1c.ru/v8/tech-log">
+	<log history="48" location="/1clogs" format="json">
+
+		<event>
+			<eq property="name" value="CALL"/>
+			<qe property="Durationus" value="1000000"/>
+		</event>
+		<event>
+			<eq property="name" value="DBPOSTGRS"/>
+			<qe property="Durationus" value="1000000"/>
+		</event>
+		<event>
+			<eq property="name" value="DBMSSQL"/>
+			<qe property="Durationus" value="1000000"/>
+		</event>
+		<property name="all"/>
+	</log>
+</config>
+```
