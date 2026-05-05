@@ -40,8 +40,7 @@ go build -o log_parser.exe .
 ```xml
 <?xml version="1.0"?>
 <config xmlns="http://v8.1c.ru/v8/tech-log">
-	<log history="48" location="/1clogs" format="json">
-
+	<log history="24" location="/1clogs" format="json">
 		<event>
 			<eq property="name" value="CALL"/>
 			<qe property="Durationus" value="1000000"/>
