@@ -27,6 +27,12 @@ go.work.sum
 # env file
 .env
 
+# agent opencode + GLM 5.1
+AGENTS.md
+
+# logs
+*.log
+
 # Editor/IDE
 # .idea/
 # .vscode/
