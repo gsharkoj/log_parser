@@ -55,6 +55,7 @@ func (p *DBMssqlProcessor) EventName() string { return "DBMSSQL" }
 func (p *DBMssqlProcessor) Process(line []byte) {
 	var entry DBMssqlEntry
 	if err := json.Unmarshal(line, &entry); err != nil {
+		log.Printf("Ошибка парсинга DBMSSQL: %v", err)
 		return
 	}
 	if entry.Name != "DBMSSQL" {

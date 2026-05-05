@@ -65,6 +65,7 @@ func (p *CallProcessor) EventName() string { return "CALL" }
 func (p *CallProcessor) Process(line []byte) {
 	var entry CallEntry
 	if err := json.Unmarshal(line, &entry); err != nil {
+		log.Printf("Ошибка парсинга CALL: %v", err)
 		return
 	}
 	if entry.Name != "CALL" {

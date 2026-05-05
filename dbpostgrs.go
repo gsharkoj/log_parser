@@ -55,6 +55,7 @@ func (p *DBPostgrsProcessor) EventName() string { return "DBPOSTGRS" }
 func (p *DBPostgrsProcessor) Process(line []byte) {
 	var entry DBPostgrsEntry
 	if err := json.Unmarshal(line, &entry); err != nil {
+		log.Printf("Ошибка парсинга DBPOSTGRS: %v", err)
 		return
 	}
 	if entry.Name != "DBPOSTGRS" {
