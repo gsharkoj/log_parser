@@ -59,8 +59,7 @@ func worker(files <-chan string, processors map[string]EventProcessor, wg *sync.
 
 func main() {
 	inputDir := flag.String("dir", ".", "Путь к папке с файлами логов (поиск рекурсивный)")
-	outputFile := flag.String("out", "result.json", "Путь к выходному файлу CALL")
-	outSqlFile := flag.String("out-sql", "result_sql.json", "Путь к выходному файлу DBPOSTGRS/DBMSSQL")
+	outputFile := flag.String("out", "result.json", "Путь к выходному файлу")
 	workers := flag.Int("workers", 4, "Количество воркеров для параллельного чтения файлов")
 	step := flag.Int("step", 3, "Шаг агрегации в минутах")
 	beginStr := flag.String("begin", "", "Начало периода: HH или YYMMDDHH")
@@ -159,20 +158,35 @@ func main() {
 	fmt.Printf("Агрегировано DBPOSTGRS-групп: %d\n", len(dbPostgrsProc.result))
 	fmt.Printf("Агрегировано DBMSSQL-групп: %d\n", len(dbMssqlProc.result))
 
-	if err := callProc.WriteOutput(*outputFile); err != nil {
-		log.Fatalf("Ошибка записи результата CALL: %v", err)
+	callEntries := make([]*CallAggregatedEntry, 0, len(callProc.result))
+	for _, v := range callProc.result {
+		callEntries = append(callEntries, v)
 	}
-	fmt.Printf("Результат CALL сохранён в файл: %s\n", *outputFile)
+	dbPostgrsEntries := make([]*DBPostgrsAggregatedEntry, 0, len(dbPostgrsProc.result))
+	for _, v := range dbPostgrsProc.result {
+		dbPostgrsEntries = append(dbPostgrsEntries, v)
+	}
+	dbMssqlEntries := make([]*DBMssqlAggregatedEntry, 0, len(dbMssqlProc.result))
+	for _, v := range dbMssqlProc.result {
+		dbMssqlEntries = append(dbMssqlEntries, v)
+	}
 
-	if err := dbPostgrsProc.WriteOutput(*outSqlFile); err != nil {
-		log.Fatalf("Ошибка записи результата DBPOSTGRS: %v", err)
+	output := map[string]interface{}{
+		"CALL":      callEntries,
+		"DBPOSTGRS": dbPostgrsEntries,
+		"DBMSSQL":   dbMssqlEntries,
 	}
 
-	if len(dbMssqlProc.result) > 0 {
-		if err := dbMssqlProc.WriteOutput(*outSqlFile); err != nil {
-			log.Fatalf("Ошибка записи результата DBMSSQL: %v", err)
-		}
+	f, err := os.Create(*outputFile)
+	if err != nil {
+		log.Fatalf("Ошибка создания выходного файла: %v", err)
 	}
-	
-	fmt.Printf("Результат DB сохранён в файл: %s\n", *outSqlFile)
+	defer f.Close()
+
+	enc := json.NewEncoder(f)
+	enc.SetIndent("", "  ")
+	if err := enc.Encode(output); err != nil {
+		log.Fatalf("Ошибка записи результата: %v", err)
+	}
+	fmt.Printf("Результат сохранён в файл: %s\n", *outputFile)
 }
