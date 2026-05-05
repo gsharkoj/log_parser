@@ -61,7 +61,7 @@ func main() {
 	inputDir := flag.String("dir", ".", "Путь к папке с файлами логов (поиск рекурсивный)")
 	outputFile := flag.String("out", "result.json", "Путь к выходному файлу CALL")
 	outSqlFile := flag.String("out-sql", "result_sql.json", "Путь к выходному файлу DBPOSTGRS/DBMSSQL")
-	workers := flag.Int("workers", 2, "Количество воркеров для параллельного чтения файлов")
+	workers := flag.Int("workers", 4, "Количество воркеров для параллельного чтения файлов")
 	step := flag.Int("step", 3, "Шаг агрегации в минутах")
 	beginStr := flag.String("begin", "", "Начало периода: HH или YYMMDDHH")
 	endStr := flag.String("end", "", "Конец периода: HH или YYMMDDHH")
