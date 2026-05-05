@@ -154,9 +154,9 @@ func main() {
 		p.Stop()
 	}
 
-	fmt.Printf("Агрегировано CALL-групп: %d\n", len(callProc.result))
-	fmt.Printf("Агрегировано DBPOSTGRS-групп: %d\n", len(dbPostgrsProc.result))
-	fmt.Printf("Агрегировано DBMSSQL-групп: %d\n", len(dbMssqlProc.result))
+	fmt.Printf("Агрегировано CALL: %d\n", len(callProc.result))
+	fmt.Printf("Агрегировано DBPOSTGRS: %d\n", len(dbPostgrsProc.result))
+	fmt.Printf("Агрегировано DBMSSQL: %d\n", len(dbMssqlProc.result))
 
 	callEntries := make([]*CallAggregatedEntry, 0, len(callProc.result))
 	for _, v := range callProc.result {
