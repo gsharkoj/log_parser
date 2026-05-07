@@ -1,6 +1,6 @@
 # log_parser
 
-Парсер технологического журнала 1С с агрегацией событий по временным окнам по событиям CALL, DBPOSTGRS, DBMSSQL, CLSTR.
+Парсер технологического журнала 1С с агрегацией событий по временным окнам по событиям CALL, DBPOSTGRS, DBMSSQL, CLSTR (Performance update).
 Позволяет получить небольшой срез агрегированных данных в виде JSON-файла и быстро проанализировать, куда уходили ресурсы.
 
 Читает JSON-lines лог-файлы, группирует события (CALL, DBPOSTGRS, DBMSSQL, CLSTR) по заданному шагу агрегации и выдает результат в виде JSON с суммарными метриками (длительность, память, строки БД и др.).
@@ -10,7 +10,7 @@
 ```sh
 go build -o log_parser.exe .
 ./log_parser.exe -dir ./logs -out result.json -step 3
-./log_parser.exe -dir ./logs -out result.json -step 3 -zip
+./log_parser.exe -dir ./logs -out result.json -step 10 -workers 30 -zip
 ```
 
 ## Параметры
@@ -56,6 +56,7 @@ go build -o log_parser.exe .
 		</event>
 		<event>
 			<eq property="name" value="CLSTR"/>
+			<eq property="Event" value="Performance update"/>
 		</event>
 		<property name="all"/>
 	</log>
