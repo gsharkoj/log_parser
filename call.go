@@ -33,7 +33,7 @@ type CallGroupKey struct {
 
 type CallAggregatedEntry struct {
 	TsWindow    string `json:"ts_window"`
-	ProcessName string `json:"p:processName"`
+	ProcessName string `json:"processName"`
 	Usr         string `json:"Usr"`
 	Context     string `json:"Context"`
 	Duration    int64  `json:"duration"`

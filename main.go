@@ -9,6 +9,7 @@ import (
 	"os"
 	"sync"
 	"time"
+	"archive/zip"
 )
 
 func parseFile(path string, processors map[string]EventProcessor) error {
@@ -64,6 +65,7 @@ func main() {
 	step := flag.Int("step", 3, "Шаг агрегации в минутах")
 	beginStr := flag.String("begin", "", "Начало периода: HH или YYMMDDHH")
 	endStr := flag.String("end", "", "Конец периода: HH или YYMMDDHH")
+	zipFlag := flag.Bool("zip", false, "Сжать выходной файл в zip-архив")
 	flag.Parse()
 
 	if *step < 1 {
@@ -120,11 +122,13 @@ func main() {
 	callProc := NewCallProcessor(*step)
 	dbPostgrsProc := NewDBPostgrsProcessor(*step)
 	dbMssqlProc := NewDBMssqlProcessor(*step)
+	clstrPerfProc := NewClstrPerfProcessor(*step)
 
 	processors := map[string]EventProcessor{
 		callProc.EventName():      callProc,
 		dbPostgrsProc.EventName(): dbPostgrsProc,
 		dbMssqlProc.EventName():   dbMssqlProc,
+		clstrPerfProc.EventName(): clstrPerfProc,
 	}
 
 	for _, p := range processors {
@@ -157,6 +161,7 @@ func main() {
 	fmt.Printf("Агрегировано CALL: %d\n", len(callProc.result))
 	fmt.Printf("Агрегировано DBPOSTGRS: %d\n", len(dbPostgrsProc.result))
 	fmt.Printf("Агрегировано DBMSSQL: %d\n", len(dbMssqlProc.result))
+	fmt.Printf("Агрегировано CLSTR: %d\n", len(clstrPerfProc.result))
 
 	callEntries := make([]*CallAggregatedEntry, 0, len(callProc.result))
 	for _, v := range callProc.result {
@@ -170,23 +175,66 @@ func main() {
 	for _, v := range dbMssqlProc.result {
 		dbMssqlEntries = append(dbMssqlEntries, v)
 	}
+	clstrPerfEntries := make([]*ClstrPerfAggregateEntry, 0, len(clstrPerfProc.result))
+	for _, v := range clstrPerfProc.result {
+		c := v.Count
+		clstrPerfEntries = append(clstrPerfEntries, &ClstrPerfAggregateEntry{
+			TsWindow:            v.TsWindow,
+			Process:             v.Process,
+			Pid:                 v.Pid,
+			Sql:                 (v.Sql) / c,
+			Cpu:                 (v.Cpu) / c,
+			QueueLength:         (v.QueueLength) / c,
+			QueueLengthCpuNum:   (v.QueueLengthCpuNum) / c,
+			MemoryPerformance:   (v.MemoryPerformance) / c,
+			DiskPerformance:     (v.DiskPerformance) / c,
+			ResponseTime:        (v.ResponseTime) / c,
+			AverageResponseTime: (v.AverageResponseTime) / c,
+			Count:               v.Count,
+		})
+	}
 
 	output := map[string]interface{}{
 		"CALL":      callEntries,
 		"DBPOSTGRS": dbPostgrsEntries,
 		"DBMSSQL":   dbMssqlEntries,
+		"CLSTR":     clstrPerfEntries,
 	}
 
-	f, err := os.Create(*outputFile)
-	if err != nil {
-		log.Fatalf("Ошибка создания выходного файла: %v", err)
-	}
-	defer f.Close()
+	if *zipFlag {
+		zf, err := os.Create(*outputFile + ".zip")
+		if err != nil {
+			log.Fatalf("Ошибка создания zip-архива: %v", err)
+		}
+		defer zf.Close()
 
-	enc := json.NewEncoder(f)
-	enc.SetIndent("", "  ")
-	if err := enc.Encode(output); err != nil {
-		log.Fatalf("Ошибка записи результата: %v", err)
+		w := zip.NewWriter(zf)
+		defer w.Close()
+
+		fw, err := w.Create(*outputFile)
+		if err != nil {
+			log.Fatalf("Ошибка создания записи в zip: %v", err)
+		}
+
+		enc := json.NewEncoder(fw)
+		enc.SetIndent("", "  ")
+		if err := enc.Encode(output); err != nil {
+			log.Fatalf("Ошибка записи результата в zip: %v", err)
+		}
+		w.Close()
+		fmt.Printf("Результат сохранён в файл: %s.zip\n", *outputFile)
+	} else {
+		f, err := os.Create(*outputFile)
+		if err != nil {
+			log.Fatalf("Ошибка создания выходного файла: %v", err)
+		}
+		defer f.Close()
+
+		enc := json.NewEncoder(f)
+		enc.SetIndent("", "  ")
+		if err := enc.Encode(output); err != nil {
+			log.Fatalf("Ошибка записи результата: %v", err)
+		}
+		fmt.Printf("Результат сохранён в файл: %s\n", *outputFile)
 	}
-	fmt.Printf("Результат сохранён в файл: %s\n", *outputFile)
 }
