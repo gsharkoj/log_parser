@@ -65,7 +65,7 @@ go build -o log_parser.exe .
 </config>
 ```
 
-## Результат работы по событиям DBPOSTGRS
+## Результат работы по событиям DBPOSTGRS и CLSTR
 
 ```json
 {
