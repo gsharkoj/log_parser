@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"log"
-	"os"
 )
 
 type DBMssqlEntry struct {
@@ -104,18 +103,6 @@ func (p *DBMssqlProcessor) Start() {
 func (p *DBMssqlProcessor) Stop() {
 	close(p.ch)
 	<-p.done
-}
-
-func (p *DBMssqlProcessor) WriteOutput(path string) error {
-	f, err := os.Create(path)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-
-	enc := json.NewEncoder(f)
-	enc.SetIndent("", "  ")
-	return enc.Encode(p.Entries())
 }
 
 func (p *DBMssqlProcessor) Entries() interface{} {

@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"log"
-	"os"
 	"strconv"
 	"strings"
 )
@@ -166,18 +165,6 @@ func (p *ClstrPerfProcessor) Start() {
 func (p *ClstrPerfProcessor) Stop() {
 	close(p.ch)
 	<-p.done
-}
-
-func (p *ClstrPerfProcessor) WriteOutput(path string) error {
-	f, err := os.Create(path)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-
-	enc := json.NewEncoder(f)
-	enc.SetIndent("", "  ")
-	return enc.Encode(p.Entries())
 }
 
 func (p *ClstrPerfProcessor) Entries() interface{} {

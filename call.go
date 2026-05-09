@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"os"
 )
 
 type CallEntry struct {
@@ -123,18 +122,6 @@ func (p *CallProcessor) Start() {
 func (p *CallProcessor) Stop() {
 	close(p.ch)
 	<-p.done
-}
-
-func (p *CallProcessor) WriteOutput(path string) error {
-	f, err := os.Create(path)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-
-	enc := json.NewEncoder(f)
-	enc.SetIndent("", "  ")
-	return enc.Encode(p.Entries())
 }
 
 func (p *CallProcessor) Entries() interface{} {

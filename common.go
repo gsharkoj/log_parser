@@ -13,7 +13,6 @@ type EventProcessor interface {
 	Process(line []byte)
 	Start()
 	Stop()
-	WriteOutput(path string) error
 	Entries() interface{}
 	ResultCount() int
 }

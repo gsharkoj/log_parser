@@ -1,7 +1,6 @@
 package main
 
 import (
-	"archive/zip"
 	"bufio"
 	"encoding/json"
 	"fmt"
@@ -107,40 +106,5 @@ func main() {
 		output[name] = p.Entries()
 	}
 
-	if cfg.zip {
-		zf, err := os.Create(cfg.outputFile + ".zip")
-		if err != nil {
-			log.Fatalf("Ошибка создания zip-архива: %v", err)
-		}
-		defer zf.Close()
-
-		w := zip.NewWriter(zf)
-		defer w.Close()
-
-		fw, err := w.Create(cfg.outputFile)
-		if err != nil {
-			log.Fatalf("Ошибка создания записи в zip: %v", err)
-		}
-
-		enc := json.NewEncoder(fw)
-		enc.SetIndent("", "  ")
-		if err := enc.Encode(output); err != nil {
-			log.Fatalf("Ошибка записи результата в zip: %v", err)
-		}
-		w.Close()
-		fmt.Printf("Результат сохранён в файл: %s.zip\n", cfg.outputFile)
-	} else {
-		f, err := os.Create(cfg.outputFile)
-		if err != nil {
-			log.Fatalf("Ошибка создания выходного файла: %v", err)
-		}
-		defer f.Close()
-
-		enc := json.NewEncoder(f)
-		enc.SetIndent("", "  ")
-		if err := enc.Encode(output); err != nil {
-			log.Fatalf("Ошибка записи результата: %v", err)
-		}
-		fmt.Printf("Результат сохранён в файл: %s\n", cfg.outputFile)
-	}
+	writeOutput(cfg.outputFile, output, cfg.zip)
 }
