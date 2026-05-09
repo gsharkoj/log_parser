@@ -56,6 +56,10 @@ type CallProcessor struct {
 }
 
 func NewCallProcessor(step int) *CallProcessor {
+	// При step=0 создаётся облегчённый объект только для получения EventName()
+	if step == 0 {
+		return &CallProcessor{step: step}
+	}
 	return &CallProcessor{
 		ch:   make(chan CallEntry, 10000),
 		step: step,

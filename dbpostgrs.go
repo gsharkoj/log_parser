@@ -46,6 +46,10 @@ type DBPostgrsProcessor struct {
 }
 
 func NewDBPostgrsProcessor(step int) *DBPostgrsProcessor {
+	// При step=0 создаётся облегчённый объект только для получения EventName()
+	if step == 0 {
+		return &DBPostgrsProcessor{step: step}
+	}
 	return &DBPostgrsProcessor{
 		ch:   make(chan DBPostgrsEntry, 10000),
 		step: step,

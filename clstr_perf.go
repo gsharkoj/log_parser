@@ -73,6 +73,10 @@ type ClstrPerfProcessor struct {
 }
 
 func NewClstrPerfProcessor(step int) *ClstrPerfProcessor {
+	// При step=0 создаётся облегчённый объект только для получения EventName()
+	if step == 0 {
+		return &ClstrPerfProcessor{step: step}
+	}
 	return &ClstrPerfProcessor{
 		ch:   make(chan clstrPerfData, 10000),
 		step: step,

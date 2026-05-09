@@ -46,6 +46,10 @@ type DBMssqlProcessor struct {
 }
 
 func NewDBMssqlProcessor(step int) *DBMssqlProcessor {
+	// При step=0 создаётся облегчённый объект только для получения EventName()
+	if step == 0 {
+		return &DBMssqlProcessor{step: step}
+	}
 	return &DBMssqlProcessor{
 		ch:   make(chan DBMssqlEntry, 10000),
 		step: step,
