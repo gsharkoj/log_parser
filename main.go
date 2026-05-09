@@ -59,23 +59,38 @@ func worker(files <-chan string, processors map[string]EventProcessor, wg *sync.
 	}
 }
 
+type processorFactory func(int) EventProcessor
+
+var processorFactories = []processorFactory{
+	func(step int) EventProcessor { return NewCallProcessor(step) },
+	func(step int) EventProcessor { return NewDBPostgrsProcessor(step) },
+	func(step int) EventProcessor { return NewDBMssqlProcessor(step) },
+	func(step int) EventProcessor { return NewClstrPerfProcessor(step) },
+}
+
+func supportedEventNames() map[string]bool {
+	m := map[string]bool{}
+	for _, factory := range processorFactories {
+		m[factory(0).EventName()] = true
+	}
+	return m
+}
+
+func eventNamesList() []string {
+	names := make([]string, 0, len(processorFactories))
+	for _, factory := range processorFactories {
+		names = append(names, factory(0).EventName())
+	}
+	return names
+}
+
 func createProcessors(activeEvents map[string]bool, step int) map[string]EventProcessor {
 	processors := map[string]EventProcessor{}
-	if activeEvents["CALL"] {
-		p := NewCallProcessor(step)
-		processors[p.EventName()] = p
-	}
-	if activeEvents["DBPOSTGRS"] {
-		p := NewDBPostgrsProcessor(step)
-		processors[p.EventName()] = p
-	}
-	if activeEvents["DBMSSQL"] {
-		p := NewDBMssqlProcessor(step)
-		processors[p.EventName()] = p
-	}
-	if activeEvents["CLSTR"] {
-		p := NewClstrPerfProcessor(step)
-		processors[p.EventName()] = p
+	for _, factory := range processorFactories {
+		p := factory(step)
+		if activeEvents[p.EventName()] {
+			processors[p.EventName()] = p
+		}
 	}
 	return processors
 }
@@ -95,15 +110,13 @@ func main() {
 		log.Fatalf("Ошибка: шаг агрегации должен быть не менее 1 минуты")
 	}
 
-	supportedEvents := map[string]bool{
-		"CALL": true, "DBPOSTGRS": true, "DBMSSQL": true, "CLSTR": true,
-	}
+	supportedEvents := supportedEventNames()
 	activeEvents := make(map[string]bool)
 	if *eventsStr != "" {
 		for _, e := range strings.Split(*eventsStr, ",") {
 			e = strings.TrimSpace(strings.ToUpper(e))
 			if !supportedEvents[e] {
-				log.Fatalf("Ошибка: неподдерживаемое событие %q. Поддерживаемые: CALL, DBPOSTGRS, DBMSSQL, CLSTR", e)
+				log.Fatalf("Ошибка: неподдерживаемое событие %q. Поддерживаемые: %s", e, strings.Join(eventNamesList(), ", "))
 			}
 			activeEvents[e] = true
 		}
