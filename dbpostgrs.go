@@ -11,6 +11,7 @@ type DBPostgrsEntry struct {
 	Name         string `json:"name"`
 	ProcessName  string `json:"p:processName"`
 	Usr          string `json:"Usr"`
+	SessionID    string `json:"SessionID"`
 	Context      string `json:"Context"`
 	Duration     int64  `json:"duration,string"`
 	Sql          string `json:"Sql"`
@@ -22,12 +23,14 @@ type DBPostgrsGroupKey struct {
 	Context     string
 	ProcessName string
 	Usr         string
+	SessionID   string
 }
 
 type DBPostgrsAggregatedEntry struct {
 	TsWindow     string `json:"ts_window"`
 	ProcessName  string `json:"processName"`
 	Usr          string `json:"Usr"`
+	SessionID    string `json:"SessionID"`
 	Context      string `json:"Context"`
 	Duration     int64  `json:"duration"`
 	Sql          string `json:"Sql"`
@@ -78,7 +81,7 @@ func (p *DBPostgrsProcessor) Start() {
 				log.Printf("Ошибка: некорректная временная метка %q: %v", e.Ts, err)
 				continue
 			}
-			key := DBPostgrsGroupKey{TsWindow: window, Context: e.Context, ProcessName: e.ProcessName, Usr: e.Usr}
+			key := DBPostgrsGroupKey{TsWindow: window, Context: e.Context, ProcessName: e.ProcessName, Usr: e.Usr, SessionID: e.SessionID}
 			agg, ok := p.result[key]
 			if !ok {
 				agg = &DBPostgrsAggregatedEntry{
@@ -86,6 +89,7 @@ func (p *DBPostgrsProcessor) Start() {
 					Context:     e.Context,
 					ProcessName: e.ProcessName,
 					Usr:         e.Usr,
+					SessionID:   e.SessionID,
 					Sql:         e.Sql,
 				}
 				p.result[key] = agg

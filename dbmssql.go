@@ -11,6 +11,7 @@ type DBMssqlEntry struct {
 	Name         string `json:"name"`
 	ProcessName  string `json:"p:processName"`
 	Usr          string `json:"Usr"`
+	SessionID    string `json:"SessionID"`
 	Context      string `json:"Context"`
 	Duration     int64  `json:"duration,string"`
 	Sql          string `json:"Sql"`
@@ -22,12 +23,14 @@ type DBMssqlGroupKey struct {
 	Context     string
 	ProcessName string
 	Usr         string
+	SessionID   string
 }
 
 type DBMssqlAggregatedEntry struct {
 	TsWindow     string `json:"ts_window"`
 	ProcessName  string `json:"processName"`
 	Usr          string `json:"Usr"`
+	SessionID    string `json:"SessionID"`
 	Context      string `json:"Context"`
 	Duration     int64  `json:"duration"`
 	Sql          string `json:"Sql"`
@@ -73,7 +76,7 @@ func (p *DBMssqlProcessor) Start() {
 				log.Printf("Ошибка: некорректная временная метка %q: %v", e.Ts, err)
 				continue
 			}
-			key := DBMssqlGroupKey{TsWindow: window, Context: e.Context, ProcessName: e.ProcessName, Usr: e.Usr}
+			key := DBMssqlGroupKey{TsWindow: window, Context: e.Context, ProcessName: e.ProcessName, Usr: e.Usr, SessionID: e.SessionID}
 			agg, ok := p.result[key]
 			if !ok {
 				agg = &DBMssqlAggregatedEntry{
@@ -81,6 +84,7 @@ func (p *DBMssqlProcessor) Start() {
 					Context:     e.Context,
 					ProcessName: e.ProcessName,
 					Usr:         e.Usr,
+					SessionID:   e.SessionID,
 					Sql:         e.Sql,
 				}
 				p.result[key] = agg
