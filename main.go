@@ -1,15 +1,16 @@
 package main
 
 import (
+	"archive/zip"
 	"bufio"
 	"encoding/json"
 	"flag"
 	"fmt"
 	"log"
 	"os"
+	"strings"
 	"sync"
 	"time"
-	"archive/zip"
 )
 
 func parseFile(path string, processors map[string]EventProcessor) error {
@@ -58,6 +59,27 @@ func worker(files <-chan string, processors map[string]EventProcessor, wg *sync.
 	}
 }
 
+func createProcessors(activeEvents map[string]bool, step int) map[string]EventProcessor {
+	processors := map[string]EventProcessor{}
+	if activeEvents["CALL"] {
+		p := NewCallProcessor(step)
+		processors[p.EventName()] = p
+	}
+	if activeEvents["DBPOSTGRS"] {
+		p := NewDBPostgrsProcessor(step)
+		processors[p.EventName()] = p
+	}
+	if activeEvents["DBMSSQL"] {
+		p := NewDBMssqlProcessor(step)
+		processors[p.EventName()] = p
+	}
+	if activeEvents["CLSTR"] {
+		p := NewClstrPerfProcessor(step)
+		processors[p.EventName()] = p
+	}
+	return processors
+}
+
 func main() {
 	inputDir := flag.String("dir", ".", "Путь к папке с файлами логов (поиск рекурсивный)")
 	outputFile := flag.String("out", "result.json", "Путь к выходному файлу")
@@ -65,11 +87,28 @@ func main() {
 	step := flag.Int("step", 3, "Шаг агрегации в минутах")
 	beginStr := flag.String("begin", "", "Начало периода: HH или YYMMDDHH")
 	endStr := flag.String("end", "", "Конец периода: HH или YYMMDDHH")
+	eventsStr := flag.String("events", "", "Список событий через запятую (CALL,DBPOSTGRS,DBMSSQL,CLSTR). По умолчанию все")
 	zipFlag := flag.Bool("zip", false, "Сжать выходной файл в zip-архив")
 	flag.Parse()
 
 	if *step < 1 {
 		log.Fatalf("Ошибка: шаг агрегации должен быть не менее 1 минуты")
+	}
+
+	supportedEvents := map[string]bool{
+		"CALL": true, "DBPOSTGRS": true, "DBMSSQL": true, "CLSTR": true,
+	}
+	activeEvents := make(map[string]bool)
+	if *eventsStr != "" {
+		for _, e := range strings.Split(*eventsStr, ",") {
+			e = strings.TrimSpace(strings.ToUpper(e))
+			if !supportedEvents[e] {
+				log.Fatalf("Ошибка: неподдерживаемое событие %q. Поддерживаемые: CALL, DBPOSTGRS, DBMSSQL, CLSTR", e)
+			}
+			activeEvents[e] = true
+		}
+	} else {
+		activeEvents = supportedEvents
 	}
 
 	var begin, end time.Time
@@ -119,17 +158,7 @@ func main() {
 		return
 	}
 
-	callProc := NewCallProcessor(*step)
-	dbPostgrsProc := NewDBPostgrsProcessor(*step)
-	dbMssqlProc := NewDBMssqlProcessor(*step)
-	clstrPerfProc := NewClstrPerfProcessor(*step)
-
-	processors := map[string]EventProcessor{
-		callProc.EventName():      callProc,
-		dbPostgrsProc.EventName(): dbPostgrsProc,
-		dbMssqlProc.EventName():   dbMssqlProc,
-		clstrPerfProc.EventName(): clstrPerfProc,
-	}
+	processors := createProcessors(activeEvents, *step)
 
 	for _, p := range processors {
 		p.Start()
@@ -158,47 +187,13 @@ func main() {
 		p.Stop()
 	}
 
-	fmt.Printf("Агрегировано CALL: %d\n", len(callProc.result))
-	fmt.Printf("Агрегировано DBPOSTGRS: %d\n", len(dbPostgrsProc.result))
-	fmt.Printf("Агрегировано DBMSSQL: %d\n", len(dbMssqlProc.result))
-	fmt.Printf("Агрегировано CLSTR: %d\n", len(clstrPerfProc.result))
-
-	callEntries := make([]*CallAggregatedEntry, 0, len(callProc.result))
-	for _, v := range callProc.result {
-		callEntries = append(callEntries, v)
-	}
-	dbPostgrsEntries := make([]*DBPostgrsAggregatedEntry, 0, len(dbPostgrsProc.result))
-	for _, v := range dbPostgrsProc.result {
-		dbPostgrsEntries = append(dbPostgrsEntries, v)
-	}
-	dbMssqlEntries := make([]*DBMssqlAggregatedEntry, 0, len(dbMssqlProc.result))
-	for _, v := range dbMssqlProc.result {
-		dbMssqlEntries = append(dbMssqlEntries, v)
-	}
-	clstrPerfEntries := make([]*ClstrPerfAggregateEntry, 0, len(clstrPerfProc.result))
-	for _, v := range clstrPerfProc.result {
-		c := v.Count
-		clstrPerfEntries = append(clstrPerfEntries, &ClstrPerfAggregateEntry{
-			TsWindow:            v.TsWindow,
-			Process:             v.Process,
-			Pid:                 v.Pid,
-			Sql:                 (v.Sql) / c,
-			Cpu:                 (v.Cpu) / c,
-			QueueLength:         (v.QueueLength) / c,
-			QueueLengthCpuNum:   (v.QueueLengthCpuNum) / c,
-			MemoryPerformance:   (v.MemoryPerformance) / c,
-			DiskPerformance:     (v.DiskPerformance) / c,
-			ResponseTime:        (v.ResponseTime) / c,
-			AverageResponseTime: (v.AverageResponseTime) / c,
-			Count:               v.Count,
-		})
+	for name, p := range processors {
+		fmt.Printf("Агрегировано %s: %d\n", name, p.ResultCount())
 	}
 
-	output := map[string]interface{}{
-		"CALL":      callEntries,
-		"DBPOSTGRS": dbPostgrsEntries,
-		"DBMSSQL":   dbMssqlEntries,
-		"CLSTR":     clstrPerfEntries,
+	output := make(map[string]interface{})
+	for name, p := range processors {
+		output[name] = p.Entries()
 	}
 
 	if *zipFlag {

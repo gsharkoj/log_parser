@@ -116,9 +116,17 @@ func (p *DBPostgrsProcessor) WriteOutput(path string) error {
 
 	enc := json.NewEncoder(f)
 	enc.SetIndent("", "  ")
+	return enc.Encode(p.Entries())
+}
+
+func (p *DBPostgrsProcessor) Entries() interface{} {
 	entries := make([]*DBPostgrsAggregatedEntry, 0, len(p.result))
 	for _, v := range p.result {
 		entries = append(entries, v)
 	}
-	return enc.Encode(entries)
+	return entries
+}
+
+func (p *DBPostgrsProcessor) ResultCount() int {
+	return len(p.result)
 }

@@ -11,6 +11,7 @@
 go build -o log_parser.exe .
 ./log_parser.exe -dir ./logs -out result.json -step 3
 ./log_parser.exe -dir ./logs -out result.json -step 10 -workers 30 -zip
+./log_parser.exe -dir ./logs -out result.json -step 3 -events CALL,DBPOSTGRS
 ```
 
 ## Параметры
@@ -23,6 +24,7 @@ go build -o log_parser.exe .
 | `-step`     | `3`               | Шаг агрегации в минутах (минимум 1)                                     |
 | `-begin`    | —                 | Начало периода: `HH` (час сегодняшнего дня) или `YYMMDDHH`             |
 | `-end`      | —                 | Конец периода: `HH` (час сегодняшнего дня) или `YYMMDDHH`              |
+| `-events`   | все события       | Список событий через запятую: `CALL,DBPOSTGRS,DBMSSQL,CLSTR`           |
 | `-zip`      | `false`           | Сжать выходной файл в zip-архив (сохраняется как `<out>.zip`)          |
 
 ### Формат периода

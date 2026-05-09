@@ -173,6 +173,10 @@ func (p *ClstrPerfProcessor) WriteOutput(path string) error {
 
 	enc := json.NewEncoder(f)
 	enc.SetIndent("", "  ")
+	return enc.Encode(p.Entries())
+}
+
+func (p *ClstrPerfProcessor) Entries() interface{} {
 	entries := make([]*ClstrPerfAggregateEntry, 0, len(p.result))
 	for _, v := range p.result {
 		c := v.Count
@@ -180,16 +184,20 @@ func (p *ClstrPerfProcessor) WriteOutput(path string) error {
 			TsWindow:            v.TsWindow,
 			Process:             v.Process,
 			Pid:                 v.Pid,
-			Sql:                 (v.Sql) / c,
-			Cpu:                 (v.Cpu) / c,
-			QueueLength:         (v.QueueLength) / c,
-			QueueLengthCpuNum:   (v.QueueLengthCpuNum) / c,
-			MemoryPerformance:   (v.MemoryPerformance) / c,
-			DiskPerformance:     (v.DiskPerformance) / c,
-			ResponseTime:        (v.ResponseTime) / c,
-			AverageResponseTime: (v.AverageResponseTime) / c,
+			Sql:                 v.Sql / c,
+			Cpu:                 v.Cpu / c,
+			QueueLength:         v.QueueLength / c,
+			QueueLengthCpuNum:   v.QueueLengthCpuNum / c,
+			MemoryPerformance:   v.MemoryPerformance / c,
+			DiskPerformance:     v.DiskPerformance / c,
+			ResponseTime:        v.ResponseTime / c,
+			AverageResponseTime: v.AverageResponseTime / c,
 			Count:               v.Count,
 		})
 	}
-	return enc.Encode(entries)
+	return entries
+}
+
+func (p *ClstrPerfProcessor) ResultCount() int {
+	return len(p.result)
 }

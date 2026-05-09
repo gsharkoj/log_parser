@@ -14,6 +14,8 @@ type EventProcessor interface {
 	Start()
 	Stop()
 	WriteOutput(path string) error
+	Entries() interface{}
+	ResultCount() int
 }
 
 type nameOnly struct {
